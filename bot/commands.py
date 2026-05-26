@@ -6,7 +6,7 @@ from discord.ext import commands
 
 from .storage import clear_all_sessions, create_session, get_all_sessions, set_message_ref
 from .templates import RAID_TEMPLATES
-from .views import build_raid_text, build_raid_view
+from .views import build_raid_text, build_raid_view, get_role_mention
 
 _MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
            "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
@@ -67,6 +67,8 @@ def setup_commands(bot: commands.Bot) -> None:
         """Create a new raid session. Date is today or tomorrow based on the chosen time."""
         date_time = _build_date_time(hour, minute)
         session   = create_session(raid_type, date_time, str(interaction.user.id))
+        pingid    = get_role_mention(interaction.guild,session["template_name"])
+        
         if not session:
             await interaction.response.send_message("❌ Invalid raid type.", ephemeral=True)
             return
@@ -74,7 +76,8 @@ def setup_commands(bot: commands.Bot) -> None:
         text = build_raid_text(interaction.guild,session)
         view = build_raid_view(session)
 
-        await interaction.response.send_message(text, view=view)
+        await interaction.response.send_message(text, view=view,
+            allowed_mentions=discord.AllowedMentions(roles=True))
         msg = await interaction.original_response()
         set_message_ref(session["id"], str(msg.id), str(interaction.channel_id))
 
@@ -94,6 +97,10 @@ def setup_commands(bot: commands.Bot) -> None:
             view = build_raid_view(session)
             if i == 0:
                 await interaction.edit_original_response(content=text, view=view)
+            if i == 1:
+                await interaction.followup.send(content=text, view=view
+                #,allowed_mentions=discord.AllowedMentions(roles=True)
+                )
             else:
                 await interaction.followup.send(content=text, view=view)
 
@@ -153,3 +160,6 @@ def setup_commands(bot: commands.Bot) -> None:
             f"🗑️ **{total} session(s) deleted.**",
             ephemeral=True,
         )
+
+
+# ── /Test (server owner only) ───────────────────────────────────────

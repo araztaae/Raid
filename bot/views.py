@@ -89,9 +89,7 @@ def build_raid_text(guild: discord.Guild,session: dict) -> str:
     lines += [
         f"**Date & Time : {date_display}**",
         SEPARATOR,
-        get_role_mention(
-        guild,
-        session["template_name"]),
+        get_role_mention(guild,session["template_name"]),
     ]
 
     for slot in apostle_slots:

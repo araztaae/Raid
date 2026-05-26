@@ -150,7 +150,7 @@ async def on_interaction(interaction: discord.Interaction) -> None:
         session = result["session"]
         await interaction.response.edit_message(
             content=build_raid_text(interaction.guild,session), view=build_raid_view(session)
-        )
+                                   )
 
     # ── Disabled / unknown action — silently ignore ───────────────────────────
     else:
