@@ -54,6 +54,7 @@ def setup_commands(bot: commands.Bot) -> None:
         raid_type=[
             app_commands.Choice(name="Boma Dungeon",            value="boma"),
             app_commands.Choice(name="Samael Fortress Madness", value="samael"),
+            app_commands.Choice(name="The Wandering Troupe",    value="wandering"),
         ],
         hour=_HOUR_CHOICES,
         minute=_MINUTE_CHOICES,
