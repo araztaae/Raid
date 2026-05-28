@@ -57,12 +57,12 @@ def create_session(template_key: str, date_time: str, created_by: str) -> dict |
 
     now = datetime.now(timezone.utc)
 
-    # expires_at = 1 hour after raid start time; fall back to 1 hour from now if parsing fails
+    # expires_at = 20 minutes after raid start time; fall back to 1 hour from now if parsing fails
     raid_dt    = _parse_raid_datetime(date_time)
     if raid_dt:
-        expires_at = (raid_dt.astimezone(timezone.utc) + timedelta(hours=1)).isoformat()
+        expires_at = (raid_dt.astimezone(timezone.utc) + timedelta(minutes=20)).isoformat()
     else:
-        expires_at = (now + timedelta(hours=1)).isoformat()
+        expires_at = (now + timedelta(minutes=20)).isoformat()
 
     conn = get_connection()
     conn.execute(
