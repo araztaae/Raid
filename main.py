@@ -37,12 +37,10 @@ intents = discord.Intents.default()
 bot     = commands.Bot(command_prefix="!", intents=intents)
 
 
-@tasks.loop(minutes=5)
+@tasks.loop(minutes=1)
 async def _auto_cleanup() -> None:
-    """Background task: delete expired sessions every 5 minutes."""
-    removed = cleanup_expired_sessions()
-    if removed:
-        logger.info(f"Auto-cleanup: removed {removed} expired session(s)")
+    """Background task: delete expired sessions every minutes."""
+    await cleanup_expired_sessions(bot)
 
 
 @bot.event
@@ -180,7 +178,7 @@ async def _start_web_server() -> None:
 async def main() -> None:
     """Entry point: init DB → cleanup → load counter → register commands → run."""
     init_db()
-    removed = cleanup_expired_sessions()
+    removed = await cleanup_expired_sessions(bot)
     if removed:
         logger.info(f"Startup cleanup: removed {removed} expired session(s)")
     load_counter()

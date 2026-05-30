@@ -58,12 +58,12 @@ def create_session(template_key: str, date_time: str, created_by: str, guild_id:
 
     now = datetime.now(timezone.utc)
 
-    # expires_at = 20 minutes after raid start time; fall back to 1 hour from now if parsing fails
+    # expires_at = 10 minutes after raid start time; fall back to 1 hour from now if parsing fails
     raid_dt    = _parse_raid_datetime(date_time)
     if raid_dt:
-        expires_at = (raid_dt.astimezone(timezone.utc) + timedelta(minutes=20)).isoformat()
+        expires_at = (raid_dt.astimezone(timezone.utc) + timedelta(minutes=10)).isoformat()
     else:
-        expires_at = (now + timedelta(minutes=20)).isoformat()
+        expires_at = (now + timedelta(minutes=10)).isoformat()
 
     conn = get_connection()
     conn.execute(
@@ -127,7 +127,7 @@ def get_all_sessions(guild_id: int) -> list[dict]:
         FROM raid_sessions s
         LEFT JOIN raid_slots sl ON sl.session_id = s.id
         WHERE s.status = 'active'
-          AND (s.expires_at IS NULL OR s.expires_at > datetime('now'))
+          AND (s.expires_at IS NULL OR datetime(s.expires_at) > datetime('now'))
           AND s.guild_id = ?
         ORDER BY s.created_at, sl.slot_index
     """,(guild_id,)).fetchall()
@@ -179,17 +179,93 @@ def mark_session_done(session_id: str) -> bool:
     conn.close()
     return cur.rowcount > 0
 
+async def check_raid_reminders(bot) -> int:
+    now = datetime.now(timezone.utc)
+    conn = get_connection()
+    sessions = conn.execute("""
+        SELECT *
+        FROM raid_sessions
+        WHERE status = 'active'
+            AND reminder_sent = 0
+        """).fetchall()
+    
+    total = 0
 
-def cleanup_expired_sessions() -> int:
+    for session in sessions:
+        raid_dt = _parse_raid_datetime(session["date_time"])
+
+        if not raid_dt:
+            continue
+
+        minutes_until = (raid_dt.astimezone(timezone.utc) - now).total_seconds() / 60
+
+        if 0 <= minutes_until <= 10:
+            slots = conn.execute("""
+                SELECT claimed_by
+                FROM raid_slots
+                WHERE session_id = ?
+            """, (session["id"],)).fetchall()
+
+            mentions = [
+                f"<@{slot['claimed_by']}>"
+                for slot in slots
+                if slot["claimed_by"]
+            ]
+
+            channel = bot.get_channel(int(session["channel_id"]))
+
+            if channel and mentions:
+                await channel.send(
+                    f"🔔 **Raid Reminder**\n\n"
+                    f"**{session['template_name']}** will begin in less than 10 minutes.\n\n"
+                    + " ".join(mentions)
+                )
+            
+            conn.execute("""
+                UPDATE raid_sessions
+                SET reminder_sent = 1
+                WHERE id = ?
+            """, (session["id"],))
+
+            total += 1
+    
+    conn.commit()
+    conn.close()
+
+    return total
+
+async def cleanup_expired_sessions(bot) -> int:
     """Delete all sessions whose expires_at has passed. Called once at bot startup."""
     now = datetime.now(timezone.utc).isoformat()
     conn = get_connection()
-    cur = conn.execute(
-        "DELETE FROM raid_sessions WHERE expires_at IS NOT NULL AND expires_at < ?", (now,)
-    )
+    cur = conn.execute("""
+        SELECT id, channel_id, message_id, template_name, created_by
+        FROM raid_sessions
+        WHERE expires_at IS NOT NULL
+            AND datetime(expires_at) < datetime(?)
+        """, (now,)).fetchall()
+    
+    total = 0
+
+    for session in cur:
+        try:
+            channel = bot.get_channel(int(session["channel_id"]))
+            if channel:
+                await channel.send(
+                    f"⏰ **{session['template_name']}** initiated by <@{session['created_by']}> has ended automatically after 10 minutes."
+                )
+        except Exception as e:
+            print(f"Failed to send expiration message: {e}")
+        
+        conn.execute(
+            "DELETE FROM raid_sessions WHERE id = ?", (session["id"])
+        )
+
+        total += 1
+
     conn.commit()
     conn.close()
-    return cur.rowcount
+    return total
 
 
 def clear_all_sessions() -> int:

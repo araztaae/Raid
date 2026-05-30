@@ -87,6 +87,12 @@ def setup_commands(bot: commands.Bot) -> None:
     async def raid_list(interaction: discord.Interaction) -> None:
         """Display up to 5 active (non-expired) sessions with Join/Leave buttons."""
         sessions = get_all_sessions(interaction.guild.id)
+        sessions.sort(
+            key=lambda s: datetime.strptime(
+                s["date_time"],
+                "%d %b %Y | %H:%M GMT+7"
+            )
+        )
         if not sessions:
             await interaction.response.send_message("📭 No active raid sessions found.")
             return
