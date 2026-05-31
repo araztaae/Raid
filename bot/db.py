@@ -44,7 +44,8 @@ def init_db() -> None:
             role             TEXT NOT NULL,
             category         TEXT NOT NULL,
             claimed_by       TEXT,
-            claimed_username TEXT
+            claimed_username TEXT,
+            "reminder_sent"	INTEGER NOT NULL DEFAULT 0
         );
     """)
 

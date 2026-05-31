@@ -67,7 +67,7 @@ def setup_commands(bot: commands.Bot) -> None:
     ) -> None:
         """Create a new raid session. Date is today or tomorrow based on the chosen time."""
         date_time = _build_date_time(hour, minute)
-        session   = create_session(raid_type, date_time, str(interaction.user.id), interaction.guild.id)
+        session   = create_session(raid_type, date_time, str(interaction.user.id), interaction.guild.id, interaction.channel.id)
         pingid    = get_role_mention(interaction.guild,session["template_name"])
         
         if not session:

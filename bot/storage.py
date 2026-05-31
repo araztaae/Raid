@@ -47,7 +47,7 @@ def _build_session(session_row, slot_rows) -> dict:
 
 # ── Public CRUD functions ─────────────────────────────────────────────────────
 
-def create_session(template_key: str, date_time: str, created_by: str, guild_id: int) -> dict | None:
+def create_session(template_key: str, date_time: str, created_by: str, guild_id: int,channel_id: int) -> dict | None:
     """Create a new raid session. Returns a dict built from memory — no second DB query needed."""
     template = RAID_TEMPLATES.get(template_key)
     if not template:
@@ -68,9 +68,9 @@ def create_session(template_key: str, date_time: str, created_by: str, guild_id:
     conn = get_connection()
     conn.execute(
         "INSERT INTO raid_sessions "
-        "(id, guild_id, template_key, template_name, date_time, created_by, status, expires_at, created_at) "
-        "VALUES (?, ?, ?, ?, ?, ?, 'active', ?, ?)",
-        (session_id, guild_id, template_key, template.name, date_time, created_by,
+        "(id, guild_id, channel_id, template_key, template_name, date_time, created_by, status, expires_at, created_at) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, 'active', ?, ?)",
+        (session_id, guild_id, channel_id, template_key, template.name, date_time, created_by,
          expires_at, now.isoformat()),
     )
     for i, slot in enumerate(template.slots):
@@ -88,7 +88,7 @@ def create_session(template_key: str, date_time: str, created_by: str, guild_id:
         "date_time":     date_time,
         "created_by":    created_by,
         "message_id":    None,
-        "channel_id":    None,
+        "channel_id":    str(channel_id),
         "created_at":    now.isoformat(),
         "status":        "active",
         "expires_at":    expires_at,
