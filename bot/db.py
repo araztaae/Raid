@@ -45,7 +45,7 @@ def init_db() -> None:
             category         TEXT NOT NULL,
             claimed_by       TEXT,
             claimed_username TEXT,
-            "reminder_sent"	INTEGER NOT NULL DEFAULT 0
+            reminder_sent	INTEGER NOT NULL DEFAULT 0
         );
     """)
 
